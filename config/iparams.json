@@ -25,8 +25,7 @@
     "description": "Dell OAuth 2.0 Token Endpoint",
     "type": "text",
     "default_value": "https://apigtwb2c.us.dell.com/auth/oauth/v2/token",
-    "required": true,
-    "secure": true
+    "required": true
   },
   "enable_auto_update": {
     "display_name": "Auto-update Asset Records",
