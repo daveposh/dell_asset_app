@@ -1,0 +1,31 @@
+{
+  "name": "dell-asset-management",
+  "version": "1.0.0",
+  "description": "Freshservice application for managing Dell assets with warranty and hardware information lookup",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "fdk run",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "validate": "fdk validate",
+    "pack": "fdk pack"
+  },
+  "keywords": [
+    "freshservice",
+    "dell",
+    "warranty",
+    "asset-management",
+    "hardware",
+    "service-tag"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@freshworks/cli": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.13.0"
+  }
+} 

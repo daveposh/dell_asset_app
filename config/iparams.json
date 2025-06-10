@@ -1,0 +1,57 @@
+{
+  "dell_api_client_id": {
+    "display_name": "Dell TechDirect Client ID",
+    "description": "Your Dell TechDirect API Client ID",
+    "type": "text",
+    "required": true,
+    "secure": true
+  },
+  "dell_api_client_secret": {
+    "display_name": "Dell TechDirect Client Secret",
+    "description": "Your Dell TechDirect API Client Secret",
+    "type": "text",
+    "required": true,
+    "secure": true
+  },
+  "dell_api_base_url": {
+    "display_name": "Dell API Base URL",
+    "description": "Dell TechDirect API Base URL",
+    "type": "text",
+    "default_value": "https://apigtwb2c.us.dell.com/PROD/sbil/eapi/v5",
+    "required": true
+  },
+  "dell_oauth_token_url": {
+    "display_name": "Dell OAuth Token URL",
+    "description": "Dell OAuth 2.0 Token Endpoint",
+    "type": "text",
+    "default_value": "https://apigtwb2c.us.dell.com/auth/oauth/v2/token",
+    "required": true,
+    "secure": true
+  },
+  "enable_auto_update": {
+    "display_name": "Auto-update Asset Records",
+    "description": "Automatically update Freshservice asset records with Dell warranty information",
+    "type": "checkbox",
+    "default_value": true
+  },
+  "warranty_notification_days": {
+    "display_name": "Warranty Expiration Notification (Days)",
+    "description": "Number of days before warranty expiration to show warnings",
+    "type": "number",
+    "default_value": 30,
+    "required": true
+  },
+  "rate_limit_requests": {
+    "display_name": "API Rate Limit (requests per minute)",
+    "description": "Number of Dell API requests allowed per minute",
+    "type": "number",
+    "default_value": 50,
+    "required": true
+  },
+  "debug_mode": {
+    "display_name": "Enable Debug Logging",
+    "description": "Enable detailed logging for troubleshooting",
+    "type": "checkbox",
+    "default_value": false
+  }
+} 

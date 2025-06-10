@@ -1,0 +1,66 @@
+{
+  "lints": [
+    {
+      "severity": 1,
+      "value": "app\\scripts\\app.js::90: Method 'initializeBulkProcessingListeners' has a complexity of 8. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\app.js::795: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::18: refrain from simply logging errors.",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::182: Use client.request when making API requests",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::369: Method 'buildBasicAssetData' has a complexity of 10. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::391: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\freshservice-api.js::133: Method 'mapBasicAssetInfo' has a complexity of 10. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\freshservice-api.js::258: 'entitlementInfo' declared and assigned in different scopes. Possible asynchronous race condition.",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\freshservice-api.js::260: 'entitlementInfo' declared and assigned in different scopes. Possible asynchronous race condition.",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\freshservice-api.js::262: 'entitlementInfo' declared and assigned in different scopes. Possible asynchronous race condition.",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "server\\server.js::42: refrain from simply logging errors.",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "server\\server.js::418: Function 'mapDellDataToAssetFields' has a complexity of 11. Maximum allowed is 7.",
+      "type": "lint"
+    }
+  ],
+  "coverage": {},
+  "coverageSummary": {}
+}

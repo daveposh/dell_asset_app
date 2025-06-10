@@ -1,0 +1,51 @@
+{
+  "platform-version": "2.3",
+  "product": {
+    "freshservice": {
+      "location": {
+        "full_page_app": {
+          "url": "index.html",
+          "icon": "styles/images/icon.svg"
+        },
+        "asset_sidebar": {
+          "url": "index.html",
+          "icon": "styles/images/icon.svg"
+        }
+      }
+    }
+  },
+  "engines": {
+    "node": "18.19.1",
+    "fdk": "9.4.2"
+  },
+  "dependencies": {
+    "axios": "1.6.0"
+  },
+  "allowedDomains": [
+    "https://apigtwb2c.us.dell.com",
+    "https://api.dell.com",
+    "https://tdm.dell.com"
+  ],
+  "events": {
+    "onAppInstall": {
+      "handler": "onAppInstallHandler"
+    },
+    "onAppUninstall": {
+      "handler": "onAppUninstallHandler"
+    }
+  },
+  "functions": {
+    "onAppInstallHandler": {
+      "timeout": 20
+    },
+    "onAppUninstallHandler": {
+      "timeout": 20
+    },
+    "getDellAssetInfo": {
+      "timeout": 30
+    },
+    "bulkProcessAssets": {
+      "timeout": 60
+    }
+  }
+}

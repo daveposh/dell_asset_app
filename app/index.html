@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dell Asset Management</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <script src="{{{appclient}}}"></script>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <img src="styles/images/icon.svg" alt="Dell Asset Management" class="app-icon">
+                <h1>Dell Asset Management</h1>
+                <p class="subtitle">Warranty and Hardware Information Lookup</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Tab Navigation -->
+            <nav class="tab-navigation">
+                <button class="tab-button active" data-tab="single">Single Lookup</button>
+                <button class="tab-button" data-tab="bulk">Bulk Processing</button>
+                <button class="tab-button" data-tab="history">History</button>
+            </nav>
+
+            <!-- Single Lookup Tab -->
+            <div id="single-tab" class="tab-content active">
+                <div class="card">
+                    <h2>Dell Service Tag Lookup</h2>
+                    <div class="form-group">
+                        <label for="service-tag-input">Service Tag:</label>
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="service-tag-input" 
+                                placeholder="Enter Dell service tag (e.g., ABCD123)"
+                                maxlength="7"
+                                class="form-input"
+                            >
+                            <button id="lookup-button" class="btn btn-primary">
+                                <span class="btn-text">Lookup</span>
+                                <span class="spinner hidden"></span>
+                            </button>
+                        </div>
+                        <small class="help-text">Enter a 7-character Dell service tag</small>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="results-section" class="card hidden">
+                    <h3>Asset Information</h3>
+                    
+                    <!-- Basic Info -->
+                    <div class="info-section">
+                        <h4>Basic Information</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Service Tag:</label>
+                                <span id="result-service-tag">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Model:</label>
+                                <span id="result-model">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Product Line:</label>
+                                <span id="result-product-line">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Ship Date:</label>
+                                <span id="result-ship-date">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warranty Info -->
+                    <div class="info-section">
+                        <h4>Warranty Information</h4>
+                        <div class="warranty-status">
+                            <span id="warranty-status-badge" class="status-badge">Unknown</span>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Warranty Start:</label>
+                                <span id="result-warranty-start">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Warranty End:</label>
+                                <span id="result-warranty-end">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Service Level:</label>
+                                <span id="result-service-level">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Days Remaining:</label>
+                                <span id="result-days-remaining">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="action-section">
+                        <button id="update-asset-button" class="btn btn-success">
+                            Update Asset Record
+                        </button>
+                        <button id="copy-info-button" class="btn btn-secondary">
+                            Copy Information
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Section -->
+                <div id="error-section" class="card error-card hidden">
+                    <h3>Error</h3>
+                    <p id="error-message"></p>
+                    <button id="retry-button" class="btn btn-outline">Retry</button>
+                </div>
+            </div>
+
+            <!-- Bulk Processing Tab -->
+            <div id="bulk-tab" class="tab-content">
+                <div class="card">
+                    <h2>Bulk Service Tag Processing</h2>
+                    
+                    <!-- Input Methods -->
+                    <div class="bulk-input-section">
+                        <div class="input-method">
+                            <h4>Method 1: Upload CSV File</h4>
+                            <div class="file-upload-area" id="file-upload-area">
+                                <div class="upload-content">
+                                    <div class="upload-icon">📁</div>
+                                    <p>Drag and drop a CSV file here, or click to browse</p>
+                                    <small>CSV should contain service tags in the first column</small>
+                                </div>
+                                <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                            </div>
+                        </div>
+
+                        <div class="divider">OR</div>
+
+                        <div class="input-method">
+                            <h4>Method 2: Manual Entry</h4>
+                            <textarea 
+                                id="manual-tags-input" 
+                                placeholder="Enter service tags, one per line:&#10;ABCD123&#10;EFGH456&#10;IJKL789"
+                                rows="6"
+                                class="form-textarea"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Processing Controls -->
+                    <div class="processing-controls">
+                        <button id="process-bulk-button" class="btn btn-primary" disabled>
+                            <span class="btn-text">Process All</span>
+                            <span class="spinner hidden"></span>
+                        </button>
+                        <button id="clear-bulk-button" class="btn btn-outline">Clear</button>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div id="bulk-progress-section" class="progress-section hidden">
+                        <h4>Processing Progress</h4>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="progress-text">0 of 0 processed</span>
+                            <span id="progress-status">Preparing...</span>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Results -->
+                    <div id="bulk-results-section" class="card hidden">
+                        <h3>Processing Results</h3>
+                        <div class="results-summary">
+                            <div class="summary-item success">
+                                <span class="count" id="success-count">0</span>
+                                <span class="label">Successful</span>
+                            </div>
+                            <div class="summary-item error">
+                                <span class="count" id="error-count">0</span>
+                                <span class="label">Errors</span>
+                            </div>
+                            <div class="summary-item warning">
+                                <span class="count" id="warning-count">0</span>
+                                <span class="label">Warnings</span>
+                            </div>
+                        </div>
+                        
+                        <div class="results-table-container">
+                            <table id="results-table" class="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Tag</th>
+                                        <th>Model</th>
+                                        <th>Warranty Status</th>
+                                        <th>End Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="bulk-actions">
+                            <button id="export-results-button" class="btn btn-secondary">
+                                Export Results
+                            </button>
+                            <button id="update-all-assets-button" class="btn btn-success">
+                                Update All Assets
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history-tab" class="tab-content">
+                <div class="card">
+                    <h2>Lookup History</h2>
+                    <div class="history-controls">
+                        <button id="refresh-history-button" class="btn btn-outline">Refresh</button>
+                        <button id="clear-history-button" class="btn btn-outline">Clear History</button>
+                    </div>
+                    
+                    <div id="history-list" class="history-list">
+                        <div class="empty-state">
+                            <p>No lookup history available</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-content">
+                <div class="spinner large"></div>
+                <p>Processing request...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="scripts/dell-api.js"></script>
+    <script src="scripts/freshservice-api.js"></script>
+    <script src="scripts/app.js"></script>
+</body>
+</html> 
