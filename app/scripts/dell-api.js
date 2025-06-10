@@ -46,14 +46,26 @@ class DellAPI {
      * Load configuration from installation parameters
      */
     async loadConfiguration() {
-        return {
-            clientId: await this.getInstallationParam('dell_api_client_id'),
-            clientSecret: await this.getInstallationParam('dell_api_client_secret'),
-            baseUrl: await this.getInstallationParam('dell_api_base_url'),
-            tokenUrl: await this.getInstallationParam('dell_oauth_token_url'),
-            maxRequests: await this.getInstallationParam('rate_limit_requests') || 50,
-            debugMode: await this.getInstallationParam('debug_mode') || false
-        };
+        try {
+            const config = {
+                clientId: await this.getInstallationParam('dell_api_client_id'),
+                clientSecret: await this.getInstallationParam('dell_api_client_secret'),
+                baseUrl: await this.getInstallationParam('dell_api_base_url'),
+                tokenUrl: await this.getInstallationParam('dell_oauth_token_url'),
+                maxRequests: await this.getInstallationParam('rate_limit_requests') || 50,
+                debugMode: await this.getInstallationParam('debug_mode') || false
+            };
+
+            // Validate required parameters
+            if (!config.clientId || !config.clientSecret || !config.baseUrl || !config.tokenUrl) {
+                throw new Error('Missing required Dell API configuration parameters');
+            }
+
+            return config;
+        } catch (error) {
+            console.error('Failed to load Dell API configuration:', error);
+            throw error;
+        }
     }
 
     /**
@@ -64,21 +76,63 @@ class DellAPI {
             try {
                 // Use Freshworks client to get installation parameters
                 window.app.initialized().then(() => {
-                    window.app.get('installationParam', key).then(
-                        data => resolve(data.value),
-                        error => reject(error)
-                    );
-                }).catch(error => reject(error));
+                    // Try multiple API methods for compatibility
+                    if (window.app.iparams && window.app.iparams.get) {
+                        window.app.iparams.get(key).then(
+                            value => {
+                                console.log(`Installation param ${key}:`, value ? 'loaded' : 'not found');
+                                resolve(value);
+                            },
+                            error => {
+                                console.error(`Failed to get installation param ${key} via iparams.get:`, error);
+                                // Fallback to alternative method
+                                this.tryAlternativeParamMethod(key, resolve, reject);
+                            }
+                        );
+                    } else {
+                        // Try alternative method
+                        this.tryAlternativeParamMethod(key, resolve, reject);
+                    }
+                }).catch(error => {
+                    console.error('App initialization failed:', error);
+                    reject(error);
+                });
             } catch (error) {
+                console.error('Error in getInstallationParam:', error);
                 reject(error);
             }
         });
     }
 
     /**
+     * Try alternative method to get installation parameters
+     */
+    tryAlternativeParamMethod(key, resolve, reject) {
+        if (window.app.get) {
+            window.app.get('installationParam', key).then(
+                data => {
+                    console.log(`Installation param ${key} (alternative method):`, data ? 'loaded' : 'not found');
+                    resolve(data && data.value ? data.value : data);
+                },
+                error => {
+                    console.error(`Failed to get installation param ${key} via alternative method:`, error);
+                    reject(error);
+                }
+            );
+        } else {
+            reject(new Error('No available method to retrieve installation parameters'));
+        }
+    }
+
+    /**
      * Authenticate with Dell API using OAuth2 Client Credentials flow
      */
     async authenticate() {
+        // Ensure configuration is loaded before authentication
+        if (!this.config) {
+            await this.initializeConfig();
+        }
+
         if (this.isAuthenticating) {
             return await this.waitForAuthentication();
         }
@@ -113,6 +167,11 @@ class DellAPI {
         this.isAuthenticating = true;
 
         try {
+            // Validate configuration is loaded
+            if (!this.config || !this.config.clientId || !this.config.clientSecret) {
+                throw new Error('Dell API configuration not loaded or missing credentials');
+            }
+
             const authData = {
                 grant_type: 'client_credentials',
                 client_id: this.config.clientId,
