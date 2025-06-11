@@ -1073,13 +1073,18 @@ class DellAssetApp {
 
 ${originalMessage}
 
-For local testing:
-1. Open browser console (F12)
-2. Run: DellDevSetup.setupCredentials("your_client_id", "your_client_secret")
-3. Get credentials from Dell TechDirect: https://tdm.dell.com
-4. Reload the page after setting credentials
+QUICK FIX - Copy and paste this into your browser console (F12):
 
-Alternatively, install the app properly in Freshservice with valid Dell API credentials.` :
+DellDevSetup.setupCredentials("test_client_id", "test_client_secret")
+
+Then reload the page.
+
+For real Dell API credentials:
+1. Register at Dell TechDirect: https://tdm.dell.com  
+2. Get your Client ID and Secret
+3. Use DellDevSetup.setupCredentials("real_id", "real_secret")
+
+This app requires Dell TechDirect API credentials to function.` :
             `⚙️ Configuration Error
 
 ${originalMessage}
@@ -1093,6 +1098,18 @@ Register for Dell TechDirect API at: https://tdm.dell.com`;
 
         errorElement.style.whiteSpace = 'pre-line';
         errorElement.textContent = helpMessage;
+
+        // Auto-show console message in development
+        if (isDevMode) {
+            console.warn(`
+🚨 DELL API CONFIGURATION MISSING
+
+Quick fix - run this command:
+DellDevSetup.setupCredentials("test_client_id", "test_client_secret")
+
+Then reload the page.
+            `);
+        }
     }
 
     /**
