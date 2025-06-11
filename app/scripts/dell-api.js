@@ -445,17 +445,48 @@ class DellAPI {
     }
 
     /**
-     * Make token request
+     * Make token request using FDK client.request (CORS-safe)
      */
     async makeTokenRequest(authData) {
-        return await this.makeRequest(this.config.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
-            },
-            body: new URLSearchParams(authData).toString()
-        });
+        try {
+            // Try FDK client.request first (CORS-safe)
+            if (window.client && window.client.request) {
+                console.log('Using FDK client.request for OAuth token');
+                
+                const requestOptions = {
+                    url: this.config.tokenUrl,
+                    type: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    data: new URLSearchParams(authData).toString()
+                };
+
+                const result = await window.client.request(requestOptions);
+                
+                if (result.status === 200 && result.response) {
+                    return result.response;
+                } else {
+                    throw new Error(`OAuth request failed: ${result.status}`);
+                }
+            }
+
+            // Fallback to regular fetch (may have CORS issues in development)
+            console.log('Falling back to fetch for OAuth token (may encounter CORS)');
+            return await this.makeRequest(this.config.tokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                },
+                body: new URLSearchParams(authData).toString()
+            });
+            
+        } catch (error) {
+            console.error('Token request failed:', error);
+            throw new Error(`Authentication failed: ${error.message}`);
+        }
     }
 
     /**
@@ -593,34 +624,93 @@ class DellAPI {
     }
 
     /**
-     * Get warranty and asset information for a service tag using server-side function
+     * Get warranty and asset information for a service tag with fallback methods
      */
     async getAssetInfo(serviceTag) {
         try {
             this.validateServiceTag(serviceTag);
             const cleanTag = this.cleanServiceTag(serviceTag);
             
-            console.log('Calling server-side Dell API for service tag:', cleanTag);
+            console.log('Getting asset info for service tag:', cleanTag);
             
-            // Use server-side function to avoid CORS issues
-            const result = await this.invokeServerFunction('getDellAssetInfo', {
-                serviceTag: cleanTag
-            });
+            // Try server-side function first (if available)
+            try {
+                console.log('Attempting server-side Dell API call...');
+                const result = await this.invokeServerFunction('getDellAssetInfo', {
+                    serviceTag: cleanTag
+                });
 
-            if (result.status !== 'success') {
-                throw new Error(result.message || 'Server-side request failed');
+                if (result.status === 'success' && result.data && result.data.length > 0) {
+                    console.log('Server-side call successful');
+                    return this.parseAssetData(result.data[0]);
+                }
+            } catch (serverError) {
+                console.warn('Server-side function failed, falling back to client-side:', serverError.message);
             }
 
-            if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
-                throw new Error(`No data found for service tag: ${cleanTag}`);
-            }
-
-            return this.parseAssetData(result.data[0]);
+            // Fallback to client-side with CORS proxy
+            console.log('Using client-side Dell API with FDK client.request...');
+            return await this.getAssetInfoClientSide(cleanTag);
 
         } catch (error) {
             console.error('Failed to get asset info:', error);
             throw error;
         }
+    }
+
+    /**
+     * Client-side fallback using FDK client.request to avoid CORS
+     */
+    async getAssetInfoClientSide(serviceTag) {
+        try {
+            // First authenticate to get token
+            await this.authenticate();
+
+            // Make authenticated request using FDK client.request
+            const endpoint = `/asset-entitlements?servicetags=${serviceTag}`;
+            const response = await this.makeAuthenticatedRequestViaFDK(endpoint);
+            
+            if (!response || !Array.isArray(response) || response.length === 0) {
+                throw new Error(`No data found for service tag: ${serviceTag}`);
+            }
+
+            return this.parseAssetData(response[0]);
+
+        } catch (error) {
+            console.error('Client-side Dell API call failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Make authenticated Dell API request using FDK client.request (CORS-safe)
+     */
+    async makeAuthenticatedRequestViaFDK(endpoint) {
+        if (!window.client || !window.client.request) {
+            throw new Error('FDK client.request not available');
+        }
+
+        const url = `${this.config.baseUrl}${endpoint}`;
+        
+        const requestOptions = {
+            url: url,
+            type: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Accept': 'application/json',
+                'User-Agent': 'Freshservice-Dell-Asset-Management/1.0'
+            }
+        };
+
+        console.log('Making FDK client request to:', url);
+        
+        const result = await window.client.request(requestOptions);
+        
+        if (result.status !== 200) {
+            throw new Error(`Dell API request failed: ${result.status}`);
+        }
+
+        return result.response;
     }
 
     /**
@@ -785,33 +875,98 @@ class DellAPI {
     }
 
     /**
-     * Invoke server-side function to avoid CORS issues
+     * Invoke server-side function with multiple FDK API attempts
      */
     async invokeServerFunction(functionName, data = {}) {
         try {
             // Wait for app to be ready
             await this.ensureAppReady();
 
-            // Use FDK's server-side function invocation
+            console.log(`Attempting to invoke server function: ${functionName}`);
+            console.log('Available objects:', {
+                app: !!window.app,
+                client: !!window.client,
+                appRequest: !!(window.app && window.app.request),
+                clientRequest: !!(window.client && window.client.request)
+            });
+
+            // Method 1: Try app.request.invoke (FDK 9.x+)
             if (window.app && window.app.request && window.app.request.invoke) {
-                console.log(`Invoking server function: ${functionName}`);
+                console.log(`Using app.request.invoke for: ${functionName}`);
                 const result = await window.app.request.invoke(functionName, data);
                 return result.response || result;
             }
 
-            // Fallback for development or alternative FDK versions
-            if (window.client && window.client.request) {
-                console.log(`Invoking server function via client: ${functionName}`);
+            // Method 2: Try client.request.invoke (older FDK versions)
+            if (window.client && window.client.request && window.client.request.invoke) {
+                console.log(`Using client.request.invoke for: ${functionName}`);
                 const result = await window.client.request.invoke(functionName, data);
                 return result.response || result;
             }
 
-            throw new Error('FDK server function invocation not available');
+            // Method 3: Try parent.postMessage for FDK communication
+            if (window.parent && window.parent.postMessage) {
+                console.log(`Using postMessage for: ${functionName}`);
+                return await this.invokeViaPostMessage(functionName, data);
+            }
+
+            // Method 4: Direct client.request (for FDK platform requests)
+            if (window.client && window.client.request) {
+                console.log(`Using direct client.request for: ${functionName}`);
+                const requestData = {
+                    url: `/api/v2/server_function/${functionName}`,
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                const result = await window.client.request(requestData);
+                return result.response || result;
+            }
+
+            throw new Error('No FDK server function invocation method available');
 
         } catch (error) {
             console.error(`Server function ${functionName} failed:`, error);
             throw new Error(`Server-side request failed: ${error.message}`);
         }
+    }
+
+    /**
+     * Fallback method using postMessage for server function invocation
+     */
+    async invokeViaPostMessage(functionName, data) {
+        return new Promise((resolve, reject) => {
+            const requestId = Date.now() + Math.random();
+            
+            const messageHandler = (event) => {
+                if (event.data && event.data.requestId === requestId) {
+                    window.removeEventListener('message', messageHandler);
+                    if (event.data.error) {
+                        reject(new Error(event.data.error));
+                    } else {
+                        resolve(event.data.result);
+                    }
+                }
+            };
+
+            window.addEventListener('message', messageHandler);
+
+            // Send request to parent frame
+            window.parent.postMessage({
+                type: 'server_function_invoke',
+                requestId: requestId,
+                functionName: functionName,
+                data: data
+            }, '*');
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                window.removeEventListener('message', messageHandler);
+                reject(new Error('Server function invocation timeout'));
+            }, 30000);
+        });
     }
 
     /**
@@ -995,42 +1150,59 @@ class DellAPI {
     }
 
     /**
-     * Test API connection using server-side function
+     * Test Dell API connection with multiple fallback methods
      */
     async testConnection() {
+        console.log('Testing Dell API connection...');
+        
+        // Test 1: Try server-side function
         try {
-            console.log('Testing Dell API connection via server-side');
+            console.log('Testing server-side function availability...');
+            const testServiceTag = 'TEST123';
             
-            // Use a test service tag to verify connection
-            const testServiceTag = 'ABCDEFG'; // This will fail but confirms server-side connectivity
+            const result = await this.invokeServerFunction('getDellAssetInfo', {
+                serviceTag: testServiceTag
+            });
             
-            try {
-                await this.invokeServerFunction('getDellAssetInfo', {
-                    serviceTag: testServiceTag
-                });
-                // If we get here, the connection works (even if service tag is invalid)
+            // Server-side function is working
+            return {
+                success: true,
+                message: 'Dell API connection successful via server-side functions',
+                method: 'server-side'
+            };
+            
+        } catch (serverError) {
+            console.log('Server-side function not available:', serverError.message);
+        }
+
+        // Test 2: Try client-side authentication
+        try {
+            console.log('Testing client-side authentication...');
+            await this.authenticate();
+            
+            return {
+                success: true,
+                message: 'Dell API authentication successful via client-side FDK',
+                method: 'client-side'
+            };
+            
+        } catch (authError) {
+            console.error('Client-side authentication failed:', authError.message);
+            
+            // Check if it's a CORS error (indicates credentials are potentially valid)
+            if (authError.message.includes('CORS') || authError.message.includes('Failed to fetch')) {
                 return {
-                    success: true,
-                    message: 'Successfully connected to Dell TechDirect API via server-side'
+                    success: false,
+                    message: 'CORS policy blocking direct API access. Server-side functions recommended.',
+                    method: 'cors-blocked',
+                    suggestion: 'Use valid Dell TechDirect credentials and deploy to production environment.'
                 };
-            } catch (error) {
-                // Check if error indicates authentication success but invalid service tag
-                if (error.message.includes('Service tag not found') || 
-                    error.message.includes('No data found') ||
-                    error.message.includes('Invalid service tag')) {
-                    return {
-                        success: true,
-                        message: 'Dell API connection successful (authentication working)'
-                    };
-                }
-                // Authentication or connection failed
-                throw error;
             }
-        } catch (error) {
+            
             return {
                 success: false,
-                message: `Connection failed: ${error.message}`,
-                error: error
+                message: `Connection failed: ${authError.message}`,
+                error: authError
             };
         }
     }
