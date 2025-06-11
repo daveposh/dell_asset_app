@@ -82,6 +82,11 @@ class DellAssetApp {
         if (retryButton) {
             retryButton.addEventListener('click', this.performSingleLookup.bind(this));
         }
+
+        const setupDevButton = document.getElementById('setup-dev-button');
+        if (setupDevButton) {
+            setupDevButton.addEventListener('click', this.setupDevCredentials.bind(this));
+        }
     }
 
     /**
@@ -1060,6 +1065,25 @@ class DellAssetApp {
     }
 
     /**
+     * Setup development credentials
+     */
+    setupDevCredentials() {
+        if (window.DellDevSetup) {
+            const success = window.DellDevSetup.setupCredentials("test_client_id", "test_client_secret");
+            if (success) {
+                this.showToast('Test credentials set! Reloading page...', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                this.showToast('Failed to set credentials', 'error');
+            }
+        } else {
+            this.showToast('DellDevSetup not available', 'error');
+        }
+    }
+
+    /**
      * Show configuration error with helpful information
      */
     showConfigurationError(errorElement, originalMessage) {
@@ -1109,6 +1133,12 @@ DellDevSetup.setupCredentials("test_client_id", "test_client_secret")
 
 Then reload the page.
             `);
+            
+            // Show the dev setup button
+            const setupDevButton = document.getElementById('setup-dev-button');
+            if (setupDevButton) {
+                setupDevButton.classList.remove('hidden');
+            }
         }
     }
 
