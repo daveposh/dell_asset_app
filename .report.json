@@ -2,22 +2,22 @@
   "lints": [
     {
       "severity": 1,
-      "value": "app\\scripts\\app.js::90: Method 'initializeBulkProcessingListeners' has a complexity of 8. Maximum allowed is 7.",
+      "value": "app\\scripts\\app.js::95: Method 'initializeBulkProcessingListeners' has a complexity of 8. Maximum allowed is 7.",
       "type": "lint"
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\app.js::795: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "value": "app\\scripts\\app.js::800: Arrow function has a complexity of 8. Maximum allowed is 7.",
       "type": "lint"
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::380: Use client.request when making API requests",
+      "value": "app\\scripts\\dell-api.js::520: Use client.request when making API requests",
       "type": "custom-js-lint"
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::610: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "value": "app\\scripts\\dell-api.js::742: Arrow function has a complexity of 8. Maximum allowed is 7.",
       "type": "lint"
     },
     {

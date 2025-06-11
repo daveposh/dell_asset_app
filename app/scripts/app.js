@@ -1212,7 +1212,18 @@ Then reload the page.
     }
 }
 
-// Initialize app when DOM is ready
+// Initialize app following FDK patterns
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new DellAssetApp();
+    // Initialize Freshworks app client first
+    app.initialized()
+        .then(() => {
+            console.log('Freshworks app client initialized');
+            // Now initialize our app
+            window.dellAssetApp = new DellAssetApp();
+        })
+        .catch(error => {
+            console.error('Failed to initialize Freshworks app client:', error);
+            // Fallback for development mode
+            window.dellAssetApp = new DellAssetApp();
+        });
 }); 

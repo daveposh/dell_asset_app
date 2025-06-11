@@ -26,6 +26,7 @@
     "https://api.dell.com",
     "https://tdm.dell.com"
   ],
+
   "events": {
     "onAppInstall": {
       "handler": "onAppInstallHandler"
