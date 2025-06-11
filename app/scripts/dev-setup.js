@@ -70,11 +70,18 @@ Available commands:
 
 📋 Steps to get Dell API credentials:
 1. Register at Dell TechDirect: https://tdm.dell.com
-2. Create an API application to get Client ID and Secret
-3. Use setupCredentials() to store them locally
-4. Reload the page to apply changes
+2. Apply for API access (approval required, 1-2 business days)
+3. Create an API application to get Client ID and Secret
+4. Use setupCredentials() to store them locally
+5. Reload the page to apply changes
 
-⚠️  Note: This is for development only. In production, use proper Freshservice app installation.
+⚠️  IMPORTANT CONSTRAINTS:
+• Dell Warranty API has NO sandbox/test environment
+• REAL Dell TechDirect credentials required even for testing
+• Cannot test without approved Dell API access
+• Production endpoint used for all environments
+
+Note: This is for development only. In production, use proper Freshservice app installation.
         `);
     }
 };

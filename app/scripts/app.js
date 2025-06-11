@@ -1068,19 +1068,21 @@ class DellAssetApp {
      * Setup development credentials
      */
     setupDevCredentials() {
-        if (window.DellDevSetup) {
-            const success = window.DellDevSetup.setupCredentials("test_client_id", "test_client_secret");
-            if (success) {
-                this.showToast('Test credentials set! Reloading page...', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                this.showToast('Failed to set credentials', 'error');
-            }
-        } else {
-            this.showToast('DellDevSetup not available', 'error');
-        }
+        this.showToast('⚠️ No test environment available! You need real Dell TechDirect credentials.', 'error');
+        console.warn(`
+🚨 DELL API CONSTRAINT
+
+Dell Warranty API has NO sandbox/test environment!
+
+Required steps:
+1. Register at https://tdm.dell.com
+2. Get approved for API access (1-2 business days)  
+3. Create API application → get real credentials
+4. Use: DellDevSetup.setupCredentials("real_client_id", "real_client_secret")
+
+❌ Cannot provide test credentials - they don't exist!
+✅ Only real Dell TechDirect credentials work.
+        `);
     }
 
     /**
@@ -1097,18 +1099,18 @@ class DellAssetApp {
 
 ${originalMessage}
 
-QUICK FIX - Copy and paste this into your browser console (F12):
+⚠️ IMPORTANT: Dell Warranty API has NO test/sandbox environment!
+You MUST use real Dell TechDirect credentials even for testing.
 
-DellDevSetup.setupCredentials("test_client_id", "test_client_secret")
+SETUP REAL CREDENTIALS:
+1. Register at Dell TechDirect: https://tdm.dell.com
+2. Get approved for API access (1-2 business days)
+3. Create API application → get Client ID & Secret
+4. Run: DellDevSetup.setupCredentials("real_client_id", "real_client_secret")
+5. Reload the page
 
-Then reload the page.
-
-For real Dell API credentials:
-1. Register at Dell TechDirect: https://tdm.dell.com  
-2. Get your Client ID and Secret
-3. Use DellDevSetup.setupCredentials("real_id", "real_secret")
-
-This app requires Dell TechDirect API credentials to function.` :
+❌ Test credentials like "test_client_id" will NOT work!
+✅ Only real Dell TechDirect credentials work.` :
             `⚙️ Configuration Error
 
 ${originalMessage}
@@ -1128,10 +1130,17 @@ Register for Dell TechDirect API at: https://tdm.dell.com`;
             console.warn(`
 🚨 DELL API CONFIGURATION MISSING
 
-Quick fix - run this command:
-DellDevSetup.setupCredentials("test_client_id", "test_client_secret")
+⚠️  IMPORTANT: No test environment available!
+Dell Warranty API requires REAL credentials even for testing.
 
-Then reload the page.
+Steps:
+1. Register at https://tdm.dell.com 
+2. Get approved for API access
+3. Create API application → get credentials
+4. Run: DellDevSetup.setupCredentials("real_client_id", "real_client_secret")
+5. Reload the page
+
+❌ Test/fake credentials will NOT work!
             `);
             
             // Show the dev setup button

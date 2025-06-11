@@ -54,11 +54,17 @@ For production use in Freshservice:
 4. Create an API application to get credentials
 5. Use OAuth 2.0 Client Credentials flow
 
+⚠️ **IMPORTANT - No Test Environment:**
+- **Warranty API has NO sandbox/test endpoint**
+- **Must use Production endpoint even for testing**
+- **Real Dell API credentials required for any testing**
+- **Cannot test without valid Dell TechDirect account**
+
 ### 🚨 Troubleshooting
 
 **"Configuration initialization failed" error:**
 - App can't find Dell API credentials
-- Use `DellDevSetup.setupCredentials()` for development
+- Use `DellDevSetup.setupCredentials()` for development (with real credentials)
 - Or ensure proper Freshservice app installation
 
 **"Unable to retrieve installation parameter" error:**
@@ -66,10 +72,16 @@ For production use in Freshservice:
 - Missing credentials in localStorage (development)
 - Incomplete app installation (production)
 
+**"Authentication failed" errors:**
+- Invalid Dell API credentials
+- **No test credentials work** - must use real Dell TechDirect credentials
+- Check credential validity at Dell TechDirect portal
+
 **Development vs Production:**
-- Development: Uses localStorage for credentials
+- Development: Uses localStorage for credentials (**must be real Dell credentials**)
 - Production: Uses Freshservice installation parameters
 - App automatically detects the environment
+- **Both environments use Dell Production API** (no sandbox available)
 
 ### 📁 File Structure
 

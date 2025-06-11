@@ -15,7 +15,7 @@
   },
   "dell_api_base_url": {
     "display_name": "Dell API Base URL",
-    "description": "Dell TechDirect API Base URL",
+    "description": "Dell TechDirect API Base URL (Production endpoint - no sandbox available for Warranty API)",
     "type": "text",
     "default_value": "https://apigtwb2c.us.dell.com/PROD/sbil/eapi/v5",
     "required": true
