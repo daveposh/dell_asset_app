@@ -157,17 +157,18 @@ function handleConnectionError(error) {
 }
 
 /**
- * Server-side Dell API Proxy (Optional - for enhanced security)
- * This function can be used to proxy Dell API requests through the server
- * to keep API credentials secure and add additional logging/monitoring
+ * Server-side Dell API Proxy - Required for CORS compliance
+ * Handles Dell API authentication and requests from server-side to avoid CORS issues
  */
-async function proxyDellAPIRequest(args) {
+async function getDellAssetInfo(args) {
     try {
-        const { endpoint, method = 'GET', data = null } = args;
+        const { serviceTag } = args;
         
-        if (!endpoint) {
-            throw new Error('Endpoint is required');
+        if (!serviceTag) {
+            throw new Error('Service tag is required');
         }
+
+        console.log('Server-side Dell API request for service tag:', serviceTag);
 
         // Get installation parameters
         const iparams = args.iparams;
@@ -179,16 +180,76 @@ async function proxyDellAPIRequest(args) {
         const accessToken = tokenResponse.data.access_token;
 
         // Make API request to Dell
-        const apiResponse = await makeApiRequest(baseUrl, endpoint, accessToken, method, data);
+        const endpoint = `/asset-entitlements?servicetags=${serviceTag}`;
+        const apiResponse = await makeApiRequest(baseUrl, endpoint, accessToken, 'GET', null);
 
         return {
             status: 'success',
             data: apiResponse.data,
-            statusCode: apiResponse.status
+            statusCode: apiResponse.status,
+            serviceTag: serviceTag
         };
 
     } catch (error) {
-        console.error('Dell API proxy request failed:', error.message);
+        console.error('Dell API request failed for service tag:', args.serviceTag, error.message);
+        return handleProxyError(error);
+    }
+}
+
+/**
+ * Server-side Dell API Bulk Processing
+ */
+async function bulkProcessAssets(args) {
+    try {
+        const { serviceTags } = args;
+        
+        if (!serviceTags || !Array.isArray(serviceTags)) {
+            throw new Error('Service tags array is required');
+        }
+
+        console.log('Server-side Dell API bulk request for', serviceTags.length, 'service tags');
+
+        const results = [];
+        const iparams = args.iparams;
+        const { clientId, clientSecret, tokenUrl } = extractCredentials(iparams);
+        const baseUrl = iparams.dell_api_base_url;
+
+        // Get access token once for all requests
+        const tokenResponse = await authenticateWithDell(clientId, clientSecret, tokenUrl);
+        const accessToken = tokenResponse.data.access_token;
+
+        // Process in batches to respect rate limits
+        for (const serviceTag of serviceTags) {
+            try {
+                const endpoint = `/asset-entitlements?servicetags=${serviceTag}`;
+                const apiResponse = await makeApiRequest(baseUrl, endpoint, accessToken, 'GET', null);
+                
+                results.push({
+                    serviceTag: serviceTag,
+                    success: true,
+                    data: apiResponse.data
+                });
+
+                // Add delay between requests
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+            } catch (error) {
+                results.push({
+                    serviceTag: serviceTag,
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+
+        return {
+            status: 'success',
+            results: results,
+            processed: results.length
+        };
+
+    } catch (error) {
+        console.error('Dell API bulk processing failed:', error.message);
         return handleProxyError(error);
     }
 }
