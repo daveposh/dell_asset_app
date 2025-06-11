@@ -124,9 +124,12 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info">
-                    <strong>📡 Server-Side Processing:</strong> All Dell API requests are processed server-side to comply with CORS security policies and keep your API credentials secure.
-                </div>
+                                    <div class="alert alert-info">
+                        <strong>📡 Server-Side Processing:</strong> All Dell API requests are processed server-side to comply with CORS security policies and keep your API credentials secure.
+                        <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="FDKDebugHelper.showEnvironmentInfo()">
+                            🔍 Debug Environment
+                        </button>
+                    </div>
             </div>
 
             <!-- Bulk Processing Tab -->
@@ -261,6 +264,7 @@
 
     <!-- Scripts -->
     <script src="scripts/dev-setup.js"></script>
+    <script src="scripts/debug-helper.js"></script>
     <script src="scripts/dell-api.js"></script>
     <script src="scripts/freshservice-api.js"></script>
     <script src="scripts/app.js"></script>

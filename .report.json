@@ -12,17 +12,42 @@
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::520: Use client.request when making API requests",
-      "type": "custom-js-lint"
+      "value": "app\\scripts\\debug-helper.js::37: Redundant double negation.",
+      "type": "lint"
     },
     {
-      "severity": 1,
-      "value": "app\\scripts\\dell-api.js::755: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "severity": 2,
+      "value": "app\\scripts\\debug-helper.js::138: 'events' is assigned a value but never used.",
       "type": "lint"
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::790: Async method 'invokeServerFunction' has a complexity of 9. Maximum allowed is 7.",
+      "value": "app\\scripts\\debug-helper.js::155: Static async method 'testServerFunctionMethods' has a complexity of 12. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::551: Use client.request when making API requests",
+      "type": "custom-js-lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::845: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::880: Async method 'invokeServerFunction' has a complexity of 17. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 2,
+      "value": "app\\scripts\\dell-api.js::939: Async method 'invokeViaPostMessage' has no 'await' expression.",
+      "type": "lint"
+    },
+    {
+      "severity": 2,
+      "value": "app\\scripts\\dell-api.js::1163: 'result' is assigned a value but never used.",
       "type": "lint"
     },
     {
