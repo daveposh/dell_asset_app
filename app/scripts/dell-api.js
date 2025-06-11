@@ -108,8 +108,41 @@ class DellAPI {
             .map(field => this.getFieldDisplayName(field));
 
         if (missingParams.length > 0) {
-            throw new Error(`Missing required Dell API configuration parameters: ${missingParams.join(', ')}. Please ensure the app is properly installed with valid Dell TechDirect API credentials.`);
+            const isDevMode = this.isRunningInDevelopmentMode();
+            const errorMessage = this.buildConfigurationErrorMessage(missingParams, isDevMode);
+            throw new Error(errorMessage);
         }
+    }
+
+    /**
+     * Check if running in development mode
+     */
+    isRunningInDevelopmentMode() {
+        return !window.app || 
+               !window.location.hostname.includes('freshservice') ||
+               window.location.hostname === 'localhost' ||
+               window.location.protocol === 'file:';
+    }
+
+    /**
+     * Build configuration error message
+     */
+    buildConfigurationErrorMessage(missingParams, isDevMode) {
+        let message = `Missing required Dell API configuration parameters: ${missingParams.join(', ')}.`;
+        
+        if (isDevMode) {
+            message += '\n\n🔧 DEVELOPMENT MODE DETECTED:\n';
+            message += '• For testing, you can set credentials in localStorage:\n';
+            message += '  localStorage.setItem("DELL_CLIENT_ID", "your_client_id")\n';
+            message += '  localStorage.setItem("DELL_CLIENT_SECRET", "your_client_secret")\n';
+            message += '• Or install the app properly in Freshservice with valid Dell TechDirect API credentials.\n';
+            message += '• Register for Dell TechDirect API at: https://tdm.dell.com';
+        } else {
+            message += '\n\nPlease ensure the app is properly installed with valid Dell TechDirect API credentials.';
+            message += '\nTo obtain credentials, register at Dell TechDirect: https://tdm.dell.com';
+        }
+        
+        return message;
     }
 
     /**
@@ -254,9 +287,35 @@ class DellAPI {
             'dell_oauth_token_url': 'https://apigtwb2c.us.dell.com/auth/oauth/v2/token',
             'rate_limit_requests': 50,
             'debug_mode': true,
-            'dell_api_client_id': null, // These must be provided during installation
-            'dell_api_client_secret': null
+            'dell_api_client_id': this.getEnvironmentValue('DELL_CLIENT_ID'),
+            'dell_api_client_secret': this.getEnvironmentValue('DELL_CLIENT_SECRET')
         };
+    }
+
+    /**
+     * Try to get value from various environment sources
+     */
+    getEnvironmentValue(key) {
+        // Try different possible sources for development
+        const sources = [
+            () => window.localStorage?.getItem(key),
+            () => window.sessionStorage?.getItem(key),
+            () => window[key],
+            () => process?.env?.[key] // Node.js environment variables
+        ];
+
+        for (const source of sources) {
+            try {
+                const value = source();
+                if (value && value.trim()) {
+                    return value.trim();
+                }
+            } catch (error) {
+                // Ignore errors from unavailable sources
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -1046,11 +1046,53 @@ class DellAssetApp {
         const resultsSection = document.getElementById('results-section');
 
         if (errorMessage) {
-            errorMessage.textContent = message;
+            // Check if this is a configuration error and add helpful information
+            if (message.includes('Configuration initialization failed') || 
+                message.includes('installation parameter')) {
+                this.showConfigurationError(errorMessage, message);
+            } else {
+                errorMessage.textContent = message;
+            }
         }
 
         this.hideElement(resultsSection);
         this.showElement(errorSection);
+    }
+
+    /**
+     * Show configuration error with helpful information
+     */
+    showConfigurationError(errorElement, originalMessage) {
+        const isDevMode = !window.app || 
+                         !window.location.hostname.includes('freshservice') ||
+                         window.location.hostname === 'localhost' ||
+                         window.location.protocol === 'file:';
+
+        const helpMessage = isDevMode ? 
+            `🔧 Development Mode - Configuration Issue
+
+${originalMessage}
+
+For local testing:
+1. Open browser console (F12)
+2. Run: DellDevSetup.setupCredentials("your_client_id", "your_client_secret")
+3. Get credentials from Dell TechDirect: https://tdm.dell.com
+4. Reload the page after setting credentials
+
+Alternatively, install the app properly in Freshservice with valid Dell API credentials.` :
+            `⚙️ Configuration Error
+
+${originalMessage}
+
+Please contact your administrator to ensure:
+• The app is properly installed in Freshservice
+• Valid Dell TechDirect API credentials are configured
+• Dell API access is properly set up
+
+Register for Dell TechDirect API at: https://tdm.dell.com`;
+
+        errorElement.style.whiteSpace = 'pre-line';
+        errorElement.textContent = helpMessage;
     }
 
     /**
