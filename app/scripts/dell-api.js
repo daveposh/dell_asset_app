@@ -593,16 +593,29 @@ class DellAPI {
     }
 
     /**
-     * Get warranty and asset information for a service tag
+     * Get warranty and asset information for a service tag using server-side function
      */
     async getAssetInfo(serviceTag) {
         try {
             this.validateServiceTag(serviceTag);
             const cleanTag = this.cleanServiceTag(serviceTag);
-            const response = await this.fetchAssetData(cleanTag);
-            const data = await this.processAssetResponse(response);
             
-            return this.parseAssetData(data[0]);
+            console.log('Calling server-side Dell API for service tag:', cleanTag);
+            
+            // Use server-side function to avoid CORS issues
+            const result = await this.invokeServerFunction('getDellAssetInfo', {
+                serviceTag: cleanTag
+            });
+
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'Server-side request failed');
+            }
+
+            if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
+                throw new Error(`No data found for service tag: ${cleanTag}`);
+            }
+
+            return this.parseAssetData(result.data[0]);
 
         } catch (error) {
             console.error('Failed to get asset info:', error);
@@ -772,6 +785,36 @@ class DellAPI {
     }
 
     /**
+     * Invoke server-side function to avoid CORS issues
+     */
+    async invokeServerFunction(functionName, data = {}) {
+        try {
+            // Wait for app to be ready
+            await this.ensureAppReady();
+
+            // Use FDK's server-side function invocation
+            if (window.app && window.app.request && window.app.request.invoke) {
+                console.log(`Invoking server function: ${functionName}`);
+                const result = await window.app.request.invoke(functionName, data);
+                return result.response || result;
+            }
+
+            // Fallback for development or alternative FDK versions
+            if (window.client && window.client.request) {
+                console.log(`Invoking server function via client: ${functionName}`);
+                const result = await window.client.request.invoke(functionName, data);
+                return result.response || result;
+            }
+
+            throw new Error('FDK server function invocation not available');
+
+        } catch (error) {
+            console.error(`Server function ${functionName} failed:`, error);
+            throw new Error(`Server-side request failed: ${error.message}`);
+        }
+    }
+
+    /**
      * Get the primary warranty entitlement (usually ProSupport or the latest active warranty)
      */
     getPrimaryWarranty(entitlements) {
@@ -861,41 +904,67 @@ class DellAPI {
     }
 
     /**
-     * Process multiple service tags in bulk
+     * Process multiple service tags in bulk using server-side function
      */
     async processBulkServiceTags(serviceTags, progressCallback = null) {
-        if (!Array.isArray(serviceTags) || serviceTags.length === 0) {
-            throw new Error('No service tags provided');
-        }
+        try {
+            if (!Array.isArray(serviceTags) || serviceTags.length === 0) {
+                throw new Error('No service tags provided');
+            }
 
-        const results = [];
-        const batchSize = 5; // Process in batches to respect rate limits
-        const batches = this.createBatches(serviceTags, batchSize);
+            console.log(`Processing ${serviceTags.length} service tags in bulk via server-side`);
 
-        let processedCount = 0;
+            // Clean and validate service tags
+            const cleanTags = serviceTags.map(tag => {
+                this.validateServiceTag(tag);
+                return this.cleanServiceTag(tag);
+            });
 
-        for (const batch of batches) {
-            const batchResults = await this.processBatch(batch);
-            results.push(...batchResults);
-            
-            processedCount += batch.length;
+            // Use server-side bulk processing function
+            const result = await this.invokeServerFunction('bulkProcessAssets', {
+                serviceTags: cleanTags
+            });
 
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'Server-side bulk processing failed');
+            }
+
+            // Process results and add parsed data
+            const processedResults = result.results.map(item => {
+                if (item.success && item.data && item.data.length > 0) {
+                    return {
+                        serviceTag: item.serviceTag,
+                        success: true,
+                        data: this.parseAssetData(item.data[0]),
+                        error: null
+                    };
+                } else {
+                    return {
+                        serviceTag: item.serviceTag,
+                        success: false,
+                        data: null,
+                        error: item.error || 'No data returned'
+                    };
+                }
+            });
+
+            // Update progress to 100% when complete
             if (progressCallback) {
                 progressCallback({
-                    processed: processedCount,
+                    processed: processedResults.length,
                     total: serviceTags.length,
-                    percentage: Math.round((processedCount / serviceTags.length) * 100),
-                    currentBatch: results.slice(-batch.length)
+                    percentage: 100,
+                    currentBatch: processedResults
                 });
             }
 
-            // Add delay between batches (except for the last batch)
-            if (batches.indexOf(batch) < batches.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
+            console.log(`Bulk processing completed: ${processedResults.length} processed`);
+            return processedResults;
 
-        return results;
+        } catch (error) {
+            console.error('Bulk processing failed:', error);
+            throw error;
+        }
     }
 
     /**
@@ -926,16 +995,37 @@ class DellAPI {
     }
 
     /**
-     * Test API connection and credentials
+     * Test API connection using server-side function
      */
     async testConnection() {
         try {
-            const token = await this.authenticate();
-            return {
-                success: true,
-                message: 'Successfully connected to Dell TechDirect API',
-                token: token ? 'Token acquired' : 'No token'
-            };
+            console.log('Testing Dell API connection via server-side');
+            
+            // Use a test service tag to verify connection
+            const testServiceTag = 'ABCDEFG'; // This will fail but confirms server-side connectivity
+            
+            try {
+                await this.invokeServerFunction('getDellAssetInfo', {
+                    serviceTag: testServiceTag
+                });
+                // If we get here, the connection works (even if service tag is invalid)
+                return {
+                    success: true,
+                    message: 'Successfully connected to Dell TechDirect API via server-side'
+                };
+            } catch (error) {
+                // Check if error indicates authentication success but invalid service tag
+                if (error.message.includes('Service tag not found') || 
+                    error.message.includes('No data found') ||
+                    error.message.includes('Invalid service tag')) {
+                    return {
+                        success: true,
+                        message: 'Dell API connection successful (authentication working)'
+                    };
+                }
+                // Authentication or connection failed
+                throw error;
+            }
         } catch (error) {
             return {
                 success: false,

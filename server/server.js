@@ -157,6 +157,30 @@ function handleConnectionError(error) {
 }
 
 /**
+ * Make API request to Dell endpoint
+ */
+async function makeApiRequest(baseUrl, endpoint, accessToken, method = 'GET', data = null) {
+    const url = `${baseUrl}${endpoint}`;
+    
+    const options = {
+        method: method,
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json',
+            'User-Agent': 'Freshservice-Dell-Asset-Management/1.0'
+        },
+        timeout: 15000 // 15 second timeout
+    };
+
+    if (data && (method === 'POST' || method === 'PUT')) {
+        options.headers['Content-Type'] = 'application/json';
+        options.data = data;
+    }
+
+    return await axios(url, options);
+}
+
+/**
  * Server-side Dell API Proxy - Required for CORS compliance
  * Handles Dell API authentication and requests from server-side to avoid CORS issues
  */
@@ -255,51 +279,48 @@ async function bulkProcessAssets(args) {
 }
 
 /**
- * Make API request to Dell
- */
-async function makeApiRequest(baseUrl, endpoint, accessToken, method, data) {
-    return await axios({
-        method: method,
-        url: `${baseUrl}${endpoint}`,
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json',
-            'User-Agent': 'Freshservice-Dell-Asset-Management/1.0'
-        },
-        data: data,
-        timeout: 30000 // 30 second timeout
-    });
-}
-
-/**
- * Handle proxy errors
+ * Handle proxy errors from Dell API requests
  */
 function handleProxyError(error) {
-    let errorMessage = 'API request failed';
+    let errorMessage = 'Dell API request failed';
     let statusCode = 500;
-
+    
     if (error.response) {
         statusCode = error.response.status;
-        errorMessage = `Dell API error: ${error.response.status} - ${error.response.statusText}`;
+        errorMessage = `Dell API responded with status ${error.response.status}`;
         
         if (error.response.data) {
-            if (typeof error.response.data === 'string') {
-                errorMessage += ` - ${error.response.data}`;
-            } else if (error.response.data.error_description) {
-                errorMessage += ` - ${error.response.data.error_description}`;
+            if (error.response.data.error_description) {
+                errorMessage += `: ${error.response.data.error_description}`;
+            } else if (error.response.data.message) {
+                errorMessage += `: ${error.response.data.message}`;
             }
         }
+        
+        // Handle specific Dell API error codes
+        if (statusCode === 401) {
+            errorMessage = 'Authentication failed: Invalid Dell API credentials';
+        } else if (statusCode === 403) {
+            errorMessage = 'Access denied: Check Dell API permissions';
+        } else if (statusCode === 404) {
+            errorMessage = 'Service tag not found in Dell database';
+        } else if (statusCode === 429) {
+            errorMessage = 'Rate limit exceeded: Too many requests';
+        }
+        
     } else if (error.request) {
-        errorMessage = 'No response received from Dell API';
-        statusCode = 503;
+        errorMessage = 'No response from Dell API: Check network connectivity';
     } else {
-        errorMessage = error.message;
+        errorMessage = error.message || 'Unknown error occurred';
     }
 
+    console.error('Dell API error:', errorMessage);
+    
     return {
         status: 'error',
         message: errorMessage,
-        statusCode: statusCode
+        statusCode: statusCode,
+        error: error.message
     };
 }
 
@@ -597,7 +618,8 @@ function healthCheck() {
 exports = {
     onAppInstallHandler,
     onAppUninstallHandler,
-    proxyDellAPIRequest,
+    getDellAssetInfo,
+    bulkProcessAssets,
     processBulkAssets,
     updateAssetWithDellInfo,
     healthCheck

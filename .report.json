@@ -17,7 +17,12 @@
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::742: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "value": "app\\scripts\\dell-api.js::755: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "app\\scripts\\dell-api.js::790: Async method 'invokeServerFunction' has a complexity of 9. Maximum allowed is 7.",
       "type": "lint"
     },
     {
@@ -47,7 +52,12 @@
     },
     {
       "severity": 1,
-      "value": "server\\server.js::418: Function 'mapDellDataToAssetFields' has a complexity of 11. Maximum allowed is 7.",
+      "value": "server\\server.js::284: Function 'handleProxyError' has a complexity of 11. Maximum allowed is 7.",
+      "type": "lint"
+    },
+    {
+      "severity": 1,
+      "value": "server\\server.js::500: Function 'mapDellDataToAssetFields' has a complexity of 11. Maximum allowed is 7.",
       "type": "lint"
     }
   ],
