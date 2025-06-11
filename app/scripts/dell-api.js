@@ -16,17 +16,19 @@ class DellAPI {
         this.appReady = false;
         
         // Initialize when app is ready
-        this.waitForAppReady().then(() => {
-            this.initializeConfig().catch(error => {
+        this.waitForAppReady()
+            .then(() => this.initializeConfig())
+            .catch(error => {
                 console.error('Failed to initialize Dell API configuration:', error);
+                // Store initialization error for later reference
+                this.initializationError = error;
             });
-        });
     }
 
     /**
      * Wait for Freshworks app to be ready
      */
-    async waitForAppReady() {
+    waitForAppReady() {
         return new Promise((resolve) => {
             if (typeof window.app !== 'undefined') {
                 this.appReady = true;
@@ -73,26 +75,8 @@ class DellAPI {
      */
     async loadConfiguration() {
         try {
-            const config = {
-                clientId: await this.getInstallationParam('dell_api_client_id'),
-                clientSecret: await this.getInstallationParam('dell_api_client_secret'),
-                baseUrl: await this.getInstallationParam('dell_api_base_url'),
-                tokenUrl: await this.getInstallationParam('dell_oauth_token_url'),
-                maxRequests: await this.getInstallationParam('rate_limit_requests') || 50,
-                debugMode: await this.getInstallationParam('debug_mode') || false
-            };
-
-            // Validate required parameters
-            if (!config.clientId || !config.clientSecret || !config.baseUrl || !config.tokenUrl) {
-                const missingParams = [];
-                if (!config.clientId) missingParams.push('Client ID');
-                if (!config.clientSecret) missingParams.push('Client Secret');
-                if (!config.baseUrl) missingParams.push('Base URL');
-                if (!config.tokenUrl) missingParams.push('Token URL');
-                
-                throw new Error(`Missing required Dell API configuration parameters: ${missingParams.join(', ')}. Please ensure the app is properly installed with valid Dell TechDirect API credentials.`);
-            }
-
+            const config = await this.loadConfigParameters();
+            this.validateConfiguration(config);
             return config;
         } catch (error) {
             console.error('Failed to load Dell API configuration:', error);
@@ -101,62 +85,136 @@ class DellAPI {
     }
 
     /**
-     * Get installation parameter value
+     * Load configuration parameters
      */
-    getInstallationParam(key) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // Ensure app is ready
-                if (!this.appReady) {
-                    await this.waitForAppReady();
-                }
-
-                // Method 1: Try direct access from app.iparams
-                if (window.app && window.app.iparams && window.app.iparams[key]) {
-                    const value = window.app.iparams[key];
-                    console.log(`Installation param ${key}:`, value ? 'loaded' : 'not found');
-                    resolve(value);
-                    return;
-                }
-
-                // Method 2: Try client.iparams.get() for newer FDK versions
-                if (window.client && window.client.iparams && window.client.iparams.get) {
-                    try {
-                        const value = await window.client.iparams.get(key);
-                        console.log(`Installation param ${key} (via client):`, value ? 'loaded' : 'not found');
-                        resolve(value);
-                        return;
-                    } catch (clientError) {
-                        console.debug(`Client method failed for ${key}:`, clientError.message);
-                    }
-                }
-
-                // Method 3: Try app.iparams.get() if it exists
-                if (window.app && window.app.iparams && window.app.iparams.get) {
-                    try {
-                        const value = await window.app.iparams.get(key);
-                        console.log(`Installation param ${key} (via app.iparams.get):`, value ? 'loaded' : 'not found');
-                        resolve(value);
-                        return;
-                    } catch (appError) {
-                        console.debug(`App iparams.get method failed for ${key}:`, appError.message);
-                    }
-                }
-
-                // Method 4: Try direct access from various locations
-                this.tryDirectParamAccess(key, resolve, reject);
-
-            } catch (error) {
-                console.error('Error in getInstallationParam:', error);
-                reject(error);
-            }
-        });
+    async loadConfigParameters() {
+        return {
+            clientId: await this.getInstallationParam('dell_api_client_id'),
+            clientSecret: await this.getInstallationParam('dell_api_client_secret'),
+            baseUrl: await this.getInstallationParam('dell_api_base_url'),
+            tokenUrl: await this.getInstallationParam('dell_oauth_token_url'),
+            maxRequests: await this.getInstallationParam('rate_limit_requests') || 50,
+            debugMode: await this.getInstallationParam('debug_mode') || false
+        };
     }
 
     /**
-     * Try direct parameter access
+     * Validate configuration parameters
      */
-    tryDirectParamAccess(key, resolve, reject) {
+    validateConfiguration(config) {
+        const requiredFields = ['clientId', 'clientSecret', 'baseUrl', 'tokenUrl'];
+        const missingParams = requiredFields
+            .filter(field => !config[field])
+            .map(field => this.getFieldDisplayName(field));
+
+        if (missingParams.length > 0) {
+            throw new Error(`Missing required Dell API configuration parameters: ${missingParams.join(', ')}. Please ensure the app is properly installed with valid Dell TechDirect API credentials.`);
+        }
+    }
+
+    /**
+     * Get display name for configuration field
+     */
+    getFieldDisplayName(field) {
+        const displayNames = {
+            clientId: 'Client ID',
+            clientSecret: 'Client Secret',
+            baseUrl: 'Base URL',
+            tokenUrl: 'Token URL'
+        };
+        return displayNames[field] || field;
+    }
+
+    /**
+     * Get installation parameter value
+     */
+    async getInstallationParam(key) {
+        try {
+            await this.ensureAppReady();
+            return await this.tryParamAccessMethods(key);
+        } catch (error) {
+            console.error('Error in getInstallationParam:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ensure app is ready
+     */
+    async ensureAppReady() {
+        if (!this.appReady) {
+            await this.waitForAppReady();
+        }
+    }
+
+    /**
+     * Try different parameter access methods
+     */
+    async tryParamAccessMethods(key) {
+        // Method 1: Direct access from app.iparams
+        const directValue = this.tryDirectAccess(key);
+        if (directValue !== undefined) return directValue;
+
+        // Method 2: Client SDK access
+        const clientValue = await this.tryClientAccess(key);
+        if (clientValue !== undefined) return clientValue;
+
+        // Method 3: App SDK access
+        const appValue = await this.tryAppAccess(key);
+        if (appValue !== undefined) return appValue;
+
+        // Method 4: Fallback access
+        return this.tryDirectParamAccessAsync(key);
+    }
+
+    /**
+     * Try direct access from app.iparams
+     */
+    tryDirectAccess(key) {
+        if (window.app && window.app.iparams && window.app.iparams[key]) {
+            const value = window.app.iparams[key];
+            console.log(`Installation param ${key}:`, value ? 'loaded' : 'not found');
+            return value;
+        }
+        return undefined;
+    }
+
+    /**
+     * Try client SDK access
+     */
+    async tryClientAccess(key) {
+        if (window.client && window.client.iparams && window.client.iparams.get) {
+            try {
+                const value = await window.client.iparams.get(key);
+                console.log(`Installation param ${key} (via client):`, value ? 'loaded' : 'not found');
+                return value;
+            } catch (clientError) {
+                console.debug(`Client method failed for ${key}:`, clientError.message);
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Try app SDK access
+     */
+    async tryAppAccess(key) {
+        if (window.app && window.app.iparams && window.app.iparams.get) {
+            try {
+                const value = await window.app.iparams.get(key);
+                console.log(`Installation param ${key} (via app.iparams.get):`, value ? 'loaded' : 'not found');
+                return value;
+            } catch (appError) {
+                console.debug(`App iparams.get method failed for ${key}:`, appError.message);
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Try direct parameter access (async version)
+     */
+    tryDirectParamAccessAsync(key) {
         // Try to access installation parameters from various possible locations
         const possibleSources = [
             () => window.iparams && window.iparams[key],
@@ -170,8 +228,7 @@ class DellAPI {
                 const value = source();
                 if (value !== undefined && value !== null) {
                     console.log(`Installation param ${key} (direct access):`, 'loaded');
-                    resolve(value);
-                    return;
+                    return value;
                 }
             } catch (error) {
                 console.debug(`Source check failed for ${key}:`, error.message);
@@ -182,11 +239,10 @@ class DellAPI {
         const defaultValues = this.getDefaultConfigValues();
         if (defaultValues[key]) {
             console.warn(`Using default value for ${key} - app may not be properly installed`);
-            resolve(defaultValues[key]);
-            return;
+            return defaultValues[key];
         }
 
-        reject(new Error(`Unable to retrieve installation parameter: ${key}. App may not be properly installed.`));
+        throw new Error(`Unable to retrieve installation parameter: ${key}. App may not be properly installed.`);
     }
 
     /**
@@ -510,16 +566,37 @@ class DellAPI {
      */
     buildBasicAssetData(rawData) {
         return {
-            serviceTag: rawData.serviceTag || 'Unknown',
-            model: rawData.productLineDescription || rawData.systemDescription || 'Unknown',
-            productFamily: rawData.productFamily || 'Unknown',
-            systemDescription: rawData.systemDescription || 'Unknown',
-            shipDate: rawData.shipDate ? new Date(rawData.shipDate) : null,
-            countryCode: rawData.countryCode || 'Unknown',
-            duplicated: rawData.duplicated || false,
-            invalid: rawData.invalid || false,
+            serviceTag: this.getStringValue(rawData.serviceTag),
+            model: this.getModelName(rawData),
+            productFamily: this.getStringValue(rawData.productFamily),
+            systemDescription: this.getStringValue(rawData.systemDescription),
+            shipDate: this.parseDate(rawData.shipDate),
+            countryCode: this.getStringValue(rawData.countryCode),
+            duplicated: Boolean(rawData.duplicated),
+            invalid: Boolean(rawData.invalid),
             entitlements: []
         };
+    }
+
+    /**
+     * Get string value with fallback
+     */
+    getStringValue(value) {
+        return value || 'Unknown';
+    }
+
+    /**
+     * Get model name from raw data
+     */
+    getModelName(rawData) {
+        return rawData.productLineDescription || rawData.systemDescription || 'Unknown';
+    }
+
+    /**
+     * Parse date string to Date object
+     */
+    parseDate(dateString) {
+        return dateString ? new Date(dateString) : null;
     }
 
     /**

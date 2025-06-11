@@ -12,22 +12,12 @@
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::18: refrain from simply logging errors.",
+      "value": "app\\scripts\\dell-api.js::380: Use client.request when making API requests",
       "type": "custom-js-lint"
     },
     {
       "severity": 1,
-      "value": "app\\scripts\\dell-api.js::182: Use client.request when making API requests",
-      "type": "custom-js-lint"
-    },
-    {
-      "severity": 1,
-      "value": "app\\scripts\\dell-api.js::369: Method 'buildBasicAssetData' has a complexity of 10. Maximum allowed is 7.",
-      "type": "lint"
-    },
-    {
-      "severity": 1,
-      "value": "app\\scripts\\dell-api.js::391: Arrow function has a complexity of 8. Maximum allowed is 7.",
+      "value": "app\\scripts\\dell-api.js::610: Arrow function has a complexity of 8. Maximum allowed is 7.",
       "type": "lint"
     },
     {
