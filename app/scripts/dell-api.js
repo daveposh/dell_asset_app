@@ -936,7 +936,7 @@ class DellAPI {
     /**
      * Fallback method using postMessage for server function invocation
      */
-    async invokeViaPostMessage(functionName, data) {
+    invokeViaPostMessage(functionName, data) {
         return new Promise((resolve, reject) => {
             const requestId = Date.now() + Math.random();
             
@@ -1160,7 +1160,7 @@ class DellAPI {
             console.log('Testing server-side function availability...');
             const testServiceTag = 'TEST123';
             
-            const result = await this.invokeServerFunction('getDellAssetInfo', {
+            await this.invokeServerFunction('getDellAssetInfo', {
                 serviceTag: testServiceTag
             });
             

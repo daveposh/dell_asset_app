@@ -34,7 +34,7 @@ class FDKDebugHelper {
         };
 
         for (const [key, value] of Object.entries(objects)) {
-            console.log(`${key}:`, !!value ? '✅ Available' : '❌ Not Available', value);
+            console.log(`${key}:`, value ? '✅ Available' : '❌ Not Available', value);
         }
         
         console.groupEnd();
@@ -134,12 +134,6 @@ class FDKDebugHelper {
      */
     static checkEventHandlers() {
         console.group('⚡ Event Handlers');
-        
-        const events = [
-            'app.initialized',
-            'client.request',
-            'postMessage support'
-        ];
 
         console.log('Available event mechanisms:');
         console.log('- addEventListener:', typeof window.addEventListener !== 'undefined' ? '✅' : '❌');
